@@ -3,32 +3,50 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>管理者ページ｜集客カウントダウン</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <title>管理者ログイン</title>
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/admin.css" />
 </head>
 <body>
   <div class="page admin">
-    <header class="admin__head">
-      <h1>📝 メッセージ管理</h1>
-      <a href="index.html" class="admin__back">← 公開ページへ</a>
-    </header>
 
-    <!-- トークン入力 -->
-    <section class="admin__token card">
-      <label for="token">GitHub アクセストークン（管理者のみ）</label>
+    <!-- ログイン画面（未認証時はこれだけ表示） -->
+    <section id="login" class="card admin__login">
+      <h1>🔒 管理者ログイン</h1>
+      <p class="admin__note">編集するには GitHub アクセストークンが必要です。</p>
       <div class="admin__token-row">
-        <input type="password" id="token" placeholder="ghp_xxx / github_pat_xxx" autocomplete="off" />
-        <button id="btn-save-token" class="btn btn--ghost">記憶</button>
+        <input type="password" id="token" placeholder="github_pat_xxx / ghp_xxx" autocomplete="off" />
+        <button id="btn-unlock" class="btn btn--primary">ログイン</button>
       </div>
-      <p class="admin__note">
-        このトークンはこの端末のブラウザにのみ保存され、リポジトリには送信されません。
-        作成方法は <a href="README.md" target="_blank" rel="noopener">README</a> を参照。
-      </p>
-      <p id="token-status" class="admin__status"></p>
+      <label class="admin__remember">
+        <input type="checkbox" id="remember" checked /> この端末に記憶する
+      </label>
+      <p id="login-status" class="admin__status"></p>
+      <details class="admin__help">
+        <summary>トークンの作り方（初回のみ）</summary>
+        <ol>
+          <li>GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> → Generate new token</li>
+          <li>Repository access → Only select repositories → <b>countdown-57</b></li>
+          <li>Permissions → <b>Contents: Read and write</b></li>
+          <li>発行された <code>github_pat_...</code> を上に貼り付けてログイン</li>
+        </ol>
+        <p>※ トークンはこの端末のブラウザにのみ保存され、サイトには送信されません。</p>
+      </details>
     </section>
 
-    <div id="editor" class="admin__editor"></div>
+    <!-- 編集画面（認証後に表示） -->
+    <div id="app" hidden>
+      <header class="admin__head">
+        <h1>📝 メッセージ管理</h1>
+        <div class="admin__head-right">
+          <a href="index.html" class="admin__back">公開ページ</a>
+          <button id="btn-logout" class="btn btn--ghost">ログアウト</button>
+        </div>
+      </header>
+      <p class="admin__loggedin">✓ ログイン中 — 各日のメッセージを入力して「保存して公開」</p>
+      <div id="editor" class="admin__editor"></div>
+    </div>
 
     <div id="toast" class="toast" hidden></div>
   </div>

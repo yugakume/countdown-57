@@ -1,70 +1,115 @@
-/* 管理者ページ — GitHub API 経由で data/messages.json を更新 */
+/* 管理者ページ — トークンで認証して初めて編集画面を表示し、
+   GitHub API 経由で data/messages.json を更新する */
 
 const TOKEN_KEY = 'countdown57_gh_token';
 const API = `https://api.github.com/repos/${REPO.owner}/${REPO.repo}/contents/${REPO.path}`;
+const REPO_API = `https://api.github.com/repos/${REPO.owner}/${REPO.repo}`;
 const WD = ['日', '月', '火', '水', '木', '金', '土'];
 
 let messages = {};
+let currentToken = '';
 
 document.addEventListener('DOMContentLoaded', init);
 
-async function init() {
-  const saved = localStorage.getItem(TOKEN_KEY);
-  if (saved) document.getElementById('token').value = saved;
-
-  document.getElementById('btn-save-token').addEventListener('click', () => {
-    const t = document.getElementById('token').value.trim();
-    if (!t) { localStorage.removeItem(TOKEN_KEY); setTokenStatus('トークンを削除しました', ''); return; }
-    localStorage.setItem(TOKEN_KEY, t);
-    setTokenStatus('トークンをこの端末に記憶しました', 'ok');
+function init() {
+  document.getElementById('btn-unlock').addEventListener('click', () =>
+    unlock(document.getElementById('token').value.trim(), false)
+  );
+  document.getElementById('token').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') unlock(document.getElementById('token').value.trim(), false);
   });
+  document.getElementById('btn-logout').addEventListener('click', logout);
 
-  await loadMessages();
-  buildEditor();
+  // 記憶済みトークンがあれば自動でログインを試す
+  const saved = localStorage.getItem(TOKEN_KEY);
+  if (saved) {
+    document.getElementById('token').value = saved;
+    unlock(saved, true);
+  }
 }
 
-function getToken() {
-  return document.getElementById('token').value.trim() || localStorage.getItem(TOKEN_KEY) || '';
-}
-function ghHeaders() {
+function ghHeaders(token) {
   return {
-    Authorization: `Bearer ${getToken()}`,
+    Authorization: `Bearer ${token}`,
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
   };
 }
 
-/* 公開ファイルから現在のメッセージを読み込み（トークン不要） */
-async function loadMessages() {
+/* トークンを検証 → 通れば編集画面を表示 */
+async function unlock(token, silent) {
+  if (!token) { loginStatus('トークンを入力してください', 'err'); return; }
+  loginStatus('確認中…', '');
   try {
-    const res = await fetch(`data/messages.json?t=${Date.now()}`, { cache: 'no-store' });
-    if (res.ok) messages = await res.json();
+    const res = await fetch(`${API}?ref=${REPO.branch}&t=${Date.now()}`, {
+      headers: ghHeaders(token), cache: 'no-store',
+    });
+    if (res.status === 401) throw new Error('トークンが無効です');
+    if (res.status === 403) throw new Error('権限不足です（Contents: Read and write を確認）');
+    if (res.status === 404) {
+      // ファイル未作成の可能性。リポジトリ自体にアクセスできるか確認
+      const r2 = await fetch(REPO_API, { headers: ghHeaders(token) });
+      if (!r2.ok) throw new Error('リポジトリにアクセスできません');
+      messages = {};
+    } else if (!res.ok) {
+      throw new Error(`確認に失敗しました (${res.status})`);
+    } else {
+      const json = await res.json();
+      messages = JSON.parse(b64decode(json.content) || '{}');
+    }
+
+    currentToken = token;
+    if (document.getElementById('remember').checked) {
+      localStorage.setItem(TOKEN_KEY, token);
+    }
+    revealApp();
+    buildEditor();
   } catch (e) {
-    console.warn(e);
+    currentToken = '';
+    if (silent) {
+      localStorage.removeItem(TOKEN_KEY);
+      loginStatus('保存されたトークンが無効になりました。再入力してください。', 'err');
+    } else {
+      loginStatus('⚠ ' + e.message, 'err');
+    }
   }
 }
 
-/* GitHub API から最新の sha と中身を取得（トークン必要・コミット直前に使用） */
-async function fetchLatest() {
-  const res = await fetch(`${API}?ref=${REPO.branch}&t=${Date.now()}`, { headers: ghHeaders(), cache: 'no-store' });
-  if (res.status === 404) return { sha: undefined, data: {} };
-  if (res.status === 401) throw new Error('認証エラー：トークンが正しくありません');
-  if (!res.ok) throw new Error(`読み込み失敗 (${res.status})`);
-  const json = await res.json();
-  const data = JSON.parse(b64decode(json.content));
-  return { sha: json.sha, data };
+function revealApp() {
+  document.getElementById('login').hidden = true;
+  document.getElementById('app').hidden = false;
 }
 
+function logout() {
+  currentToken = '';
+  localStorage.removeItem(TOKEN_KEY);
+  document.getElementById('token').value = '';
+  document.getElementById('app').hidden = true;
+  document.getElementById('login').hidden = false;
+  loginStatus('ログアウトしました', '');
+}
+
+/* コミット（競合回避のため直前に最新を取得してマージ） */
 async function commit(date, name, message) {
-  if (!getToken()) throw new Error('先にアクセストークンを入力してください');
-  // 競合を避けるため、コミット直前に最新を取得してマージ
-  const { sha, data } = await fetchLatest();
+  const getRes = await fetch(`${API}?ref=${REPO.branch}&t=${Date.now()}`, {
+    headers: ghHeaders(currentToken), cache: 'no-store',
+  });
+  let sha, data = {};
+  if (getRes.ok) {
+    const j = await getRes.json();
+    sha = j.sha;
+    data = JSON.parse(b64decode(j.content) || '{}');
+  } else if (getRes.status !== 404) {
+    throw new Error(`読み込み失敗 (${getRes.status})`);
+  }
+
   const next = { ...data };
   if (!message.trim() && !name.trim()) {
-    delete next[date]; // 空なら削除
+    delete next[date];
   } else {
     next[date] = { name: name.trim(), message: message.trim(), updatedAt: new Date().toISOString() };
   }
+
   const body = {
     message: `メッセージ更新: ${date}${name ? ` (${name})` : ''}`,
     content: b64encode(JSON.stringify(next, null, 2) + '\n'),
@@ -72,16 +117,13 @@ async function commit(date, name, message) {
   };
   if (sha) body.sha = sha;
 
-  const res = await fetch(API, { method: 'PUT', headers: ghHeaders(), body: JSON.stringify(body) });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`保存失敗 (${res.status}) ${txt.slice(0, 120)}`);
-  }
+  const res = await fetch(API, { method: 'PUT', headers: ghHeaders(currentToken), body: JSON.stringify(body) });
+  if (res.status === 401 || res.status === 403) throw new Error('権限がありません。ログインし直してください。');
+  if (!res.ok) throw new Error(`保存失敗 (${res.status}) ${(await res.text()).slice(0, 120)}`);
   messages = next;
-  return true;
 }
 
-/* 全担当日の編集フォームを生成 */
+/* 全担当日の編集フォーム */
 function buildEditor() {
   const today = jstToday();
   const root = document.getElementById('editor');
@@ -119,7 +161,6 @@ function buildEditor() {
     row.querySelector('.row__save').addEventListener('click', () => saveRow(row));
   });
 
-  // 今日の行へスクロール
   const todayRow = root.querySelector('.row.is-today');
   if (todayRow) todayRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -149,8 +190,8 @@ async function saveRow(row) {
 }
 
 /* ---- helpers ---- */
-function setTokenStatus(msg, kind) {
-  const el = document.getElementById('token-status');
+function loginStatus(msg, kind) {
+  const el = document.getElementById('login-status');
   el.textContent = msg;
   el.className = 'admin__status ' + (kind || '');
 }
@@ -171,6 +212,5 @@ function esc(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
   );
 }
-// UTF-8 対応 base64
 function b64encode(str) { return btoa(unescape(encodeURIComponent(str))); }
-function b64decode(b64) { return decodeURIComponent(escape(atob(b64.replace(/\n/g, '')))); }
+function b64decode(b64) { return decodeURIComponent(escape(atob((b64 || '').replace(/\s/g, '')))); }
