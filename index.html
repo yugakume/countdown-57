@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>首都圏！集客カウントダウン｜ドットジェイピー</title>
+  <meta name="description" content="ドットジェイピー首都圏 集客期間カウントダウン。6/30までの残り時間と、毎日のメンバーメッセージ。" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="hero__brand">
+        <span class="hero__month">June</span>
+        <span class="hero__no">6</span>
+        <span class="hero__year">2026</span>
+      </div>
+      <div class="hero__title">
+        <p class="hero__lead">✨ 首都圏！ ✨</p>
+        <h1>集客カウントダウン</h1>
+        <p class="hero__sub">🕙 10:00〜17:00 の間に宣言しよう！</p>
+      </div>
+    </header>
+
+    <!-- カウントダウン -->
+    <section class="countdown" aria-live="polite">
+      <div class="countdown__remain">
+        <span class="countdown__remain-num" id="cd-days">--</span>
+        <span class="countdown__remain-unit">日</span>
+      </div>
+      <div class="countdown__clock">
+        <div class="unit"><span id="cd-h">--</span><small>時間</small></div>
+        <div class="sep">:</div>
+        <div class="unit"><span id="cd-m">--</span><small>分</small></div>
+        <div class="sep">:</div>
+        <div class="unit"><span id="cd-s">--</span><small>秒</small></div>
+      </div>
+      <p class="countdown__caption" id="cd-caption">6/30 のゴールまで…</p>
+    </section>
+
+    <!-- 進捗ゲージ -->
+    <section class="gauge">
+      <div class="gauge__bar">
+        <div class="gauge__fill" id="gauge-fill"></div>
+        <span class="gauge__text" id="gauge-text">集客期間のうち --% 終了！</span>
+      </div>
+      <div class="gauge__ends">
+        <span>6/1 スタート</span>
+        <span>6/30 ゴール</span>
+      </div>
+    </section>
+
+    <!-- 今日のスポットライト -->
+    <section class="spotlight" id="spotlight"></section>
+
+    <!-- カレンダー -->
+    <section class="calendar">
+      <h2 class="calendar__head">6月のカレンダー</h2>
+      <div class="calendar__weekdays">
+        <span>月</span><span>火</span><span>水</span><span>木</span><span>金</span>
+        <span class="sat">土</span><span class="sun">日</span>
+      </div>
+      <div class="calendar__grid" id="calendar-grid"></div>
+      <p class="calendar__hint">日付をタップするとメッセージが読めます</p>
+    </section>
+
+    <footer class="footer">
+      <a class="footer__admin" href="admin.html">管理者用ページ</a>
+      <p>ドットジェイピー 首都圏 集客カウントダウン</p>
+    </footer>
+  </div>
+
+  <!-- メッセージ詳細モーダル -->
+  <div class="modal" id="modal" hidden>
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__card" role="dialog" aria-modal="true">
+      <button class="modal__close" data-close aria-label="閉じる">×</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="js/schedule.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

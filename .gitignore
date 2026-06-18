@@ -1,0 +1,4 @@
+.DS_Store
+.claude/
+LINE_NOTE_*.jpg
+node_modules/

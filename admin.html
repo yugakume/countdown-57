@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>管理者ページ｜集客カウントダウン</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+  <div class="page admin">
+    <header class="admin__head">
+      <h1>📝 メッセージ管理</h1>
+      <a href="index.html" class="admin__back">← 公開ページへ</a>
+    </header>
+
+    <!-- トークン入力 -->
+    <section class="admin__token card">
+      <label for="token">GitHub アクセストークン（管理者のみ）</label>
+      <div class="admin__token-row">
+        <input type="password" id="token" placeholder="ghp_xxx / github_pat_xxx" autocomplete="off" />
+        <button id="btn-save-token" class="btn btn--ghost">記憶</button>
+      </div>
+      <p class="admin__note">
+        このトークンはこの端末のブラウザにのみ保存され、リポジトリには送信されません。
+        作成方法は <a href="README.md" target="_blank" rel="noopener">README</a> を参照。
+      </p>
+      <p id="token-status" class="admin__status"></p>
+    </section>
+
+    <div id="editor" class="admin__editor"></div>
+
+    <div id="toast" class="toast" hidden></div>
+  </div>
+
+  <script src="js/schedule.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
